@@ -14,19 +14,43 @@ const DEFAULT_COORDINATE_SCALE = 100000
 const playbackDurationMs = 6000
 const sliderStep = 30 * 60 * 1000
 const trailWindowMs = 6 * 60 * 60 * 1000
-const stationaryDotCutoffMs = 1 * 60 * 60 * 1000
+const stationaryDotCutoffMs = 2 * 60 * 60 * 1000
 const stationaryTrailCutoffMs = 48 * 60 * 60 * 1000
 const playbackLookaheadHours = 2
 const minRepresentativeTileZoom = 9
 const maxRepresentativeTileZoom = 14
 const geohashBase32 = '0123456789bcdefghjkmnpqrstuvwxyz'
-const shipApiUrl = import.meta.env.VITE_SHIP_API_URL ?? 'http://127.0.0.1:9000/geohash'
+const shipApiUrl = import.meta.env.VITE_SHIP_API_URL ?? 'https://xv5e6c3xhhpmod3csftedqnpem0aowjo.lambda-url.us-east-2.on.aws'
 const shipApiRetryDelayMs = 2000
 
 function delay(durationMs) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, durationMs)
   })
+}
+
+async function fetchJsonWithRetry(url, options) {
+  let response
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      response = await fetch(url, options)
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      if (attempt === 2) {
+        throw error
+      }
+
+      await delay(shipApiRetryDelayMs)
+    }
+  }
+
+  throw new Error('Request failed after retries')
 }
 
 function getShipColor(shipId) {
@@ -122,6 +146,17 @@ function getBoundsCenter(bounds) {
   }
 }
 
+function getNormalizedBounds(map) {
+  const bounds = map.getBounds()
+
+  return {
+    west: normalizeLongitude(bounds.getWest()),
+    south: bounds.getSouth(),
+    east: normalizeLongitude(bounds.getEast()),
+    north: bounds.getNorth(),
+  }
+}
+
 function encodeGeohash(latitude, longitude, precision = 3) {
   let latitudeRange = [-90, 90]
   let longitudeRange = [-180, 180]
@@ -164,18 +199,6 @@ function encodeGeohash(latitude, longitude, precision = 3) {
   }
 
   return hash
-}
-
-function buildShipApiUrl(baseUrl, geohash) {
-  if (baseUrl.includes('{geohash}')) {
-    return baseUrl.replaceAll('{geohash}', encodeURIComponent(geohash))
-  }
-
-  if (baseUrl.includes(':geohash')) {
-    return baseUrl.replaceAll(':geohash', encodeURIComponent(geohash))
-  }
-
-  return `${baseUrl.replace(/\/+$/, '')}/${encodeURIComponent(geohash)}`
 }
 
 function parseApiTimestamp(timestamp) {
@@ -517,28 +540,24 @@ function App() {
       setAvailableHours([])
       setTimelineBounds(null)
 
-      const requestUrl = buildShipApiUrl(shipApiUrl, viewportGeohash)
-      let response
-
-      for (let attempt = 1; attempt <= 2; attempt += 1) {
-        try {
-          response = await fetch(requestUrl)
-
-          if (!response.ok) {
-            throw new Error(`Ship API request failed with status ${response.status}`)
-          }
-
-          break
-        } catch (error) {
-          if (attempt === 2) {
-            throw error
-          }
-
-          await delay(shipApiRetryDelayMs)
-        }
-      }
-
-      const rawShipData = await response.json()
+      const manifestEntries = await fetchJsonWithRetry(shipApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          geohash: viewportGeohash,
+        }),
+      })
+      const rawShipData = Array.isArray(manifestEntries)
+        ? (
+            await Promise.all(
+              manifestEntries
+                .filter((entry) => entry?.url)
+                .map((entry) => fetchJsonWithRetry(entry.url)),
+            )
+          ).flat()
+        : []
       const shipIds = []
       const shipIdToIndex = new Map()
       const hourCache = new Map()
@@ -773,8 +792,8 @@ function App() {
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: [0, 15],
-      zoom: 0.8,
+      center: [-79.5, 8.9],
+      zoom: 2.35,
       projection: 'globe',
     })
 
@@ -808,25 +827,6 @@ function App() {
       mapRef.current.addSource('ship-point', {
         type: 'geojson',
         data: shipGeoJson,
-      })
-
-      mapRef.current.addSource('intro-label', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              properties: {
-                label: 'HELLO WORLD',
-              },
-              geometry: {
-                type: 'Point',
-                coordinates: [0, 14],
-              },
-            },
-          ],
-        },
       })
 
       mapRef.current.addLayer({
@@ -886,35 +886,8 @@ function App() {
         },
       })
 
-      mapRef.current.addLayer({
-        id: 'intro-label',
-        type: 'symbol',
-        source: 'intro-label',
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': 24,
-          'text-letter-spacing': 0.24,
-          'text-anchor': 'center',
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
-        },
-        paint: {
-          'text-color': '#f8fafc',
-          'text-halo-color': 'rgba(2, 6, 23, 0.92)',
-          'text-halo-width': 2,
-          'text-halo-blur': 0.4,
-        },
-      })
-
       const updateViewportState = () => {
-        const bounds = mapRef.current.getBounds()
-        const nextBounds = {
-          west: normalizeLongitude(bounds.getWest()),
-          south: bounds.getSouth(),
-          east: normalizeLongitude(bounds.getEast()),
-          north: bounds.getNorth(),
-        }
+        const nextBounds = getNormalizedBounds(mapRef.current)
         const metrics = getViewportMetrics(nextBounds)
 
         setViewportState({
@@ -1065,20 +1038,31 @@ function App() {
       return
     }
 
+    const nextPlaybackBounds = mapRef.current
+      ? getNormalizedBounds(mapRef.current)
+      : viewportState.bounds
+
+    loadedDataGeohashRef.current = ''
+    loadedHourSignatureRef.current = ''
+    fleetRef.current = []
     setIsPlaying(false)
     setIsFleetReady(false)
-    loadedHourSignatureRef.current = ''
     setIsPlayPending(true)
-    setPlaybackBounds(viewportState.bounds)
+    setPlaybackBounds(nextPlaybackBounds)
+    setFleetVersion((value) => value + 1)
   }
 
   const timelineEnd = timelineBounds?.end ?? 0
   const isPlaybackStarting = isPlayPending || (isDataLoading && !isPlaying)
+  const currentTimeLabel = timelineBounds
+    ? `${new Date(currentTime).toISOString().replace('T', ' ').slice(0, 16)} UTC`
+    : '--'
 
   return (
     <div className='app-shell'>
       <div id='map-container' ref={mapContainerRef} />
       <section className='timeline-panel'>
+        <p className='timeline-panel__clock'>{currentTimeLabel}</p>
         <div className='timeline-panel__controls'>
           <input
             className='timeline-panel__slider'

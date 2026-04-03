@@ -788,7 +788,7 @@ function App() {
   }, [isPlaying, viewportState.isPlaybackAreaValid])
 
   useEffect(() => {
-    mapboxgl.accessToken = 'pk.eyJ1IjoiYWxleHRyYW4wODk5IiwiYSI6ImNtbjhzdmU4djAxYngycm9oMXp0cGx4dmQifQ.rd5U0VETBkIjHkK29pd5dw'
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYWxleHRyYW4wODk5IiwiYSI6ImNtbml4aGk3NTBpNXkyc3E0dDhhZDMydnUifQ.7cPMxmf459qgTR9bsrw7Uw'
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',

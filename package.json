@@ -4,9 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "sync-flattened-ships": "node scripts/sync-flattened-ships.mjs",
-    "predev": "node scripts/sync-flattened-ships.mjs",
-    "prebuild": "node scripts/sync-flattened-ships.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

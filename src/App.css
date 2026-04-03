@@ -1,0 +1,179 @@
+#root {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#map-container {
+  width: 100vw;
+  height: 100vh;
+  background:
+    radial-gradient(circle at top, rgb(18, 24, 43), rgb(4, 6, 12) 58%);
+}
+
+.fleet-panel {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 1;
+  width: min(280px, calc(100vw - 48px));
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: rgba(4, 10, 24, 0.72);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.45);
+  color: #e2e8f0;
+}
+
+.fleet-panel h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 650;
+  color: #f8fafc;
+}
+
+.fleet-panel__eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #67e8f9;
+}
+
+.fleet-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.fleet-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.fleet-card strong {
+  display: block;
+  font-size: 0.98rem;
+  color: #f8fafc;
+}
+
+.fleet-card p {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: #cbd5e1;
+}
+
+.fleet-card__dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--ship-color);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--ship-color) 20%, transparent);
+}
+
+.timeline-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1;
+  width: min(520px, calc(100vw - 48px));
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: rgba(4, 10, 24, 0.8);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.45);
+  color: #e2e8f0;
+}
+
+.timeline-panel__clock {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a5f3fc;
+}
+
+.timeline-panel__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.timeline-panel__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22d3ee, #0f766e);
+  color: #03141d;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.timeline-panel__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgb(3, 20, 29, 0.28);
+  border-top-color: #03141d;
+  border-radius: 999px;
+  animation: timeline-panel-spin 0.7s linear infinite;
+}
+
+.timeline-panel__slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: #22d3ee;
+}
+
+@keyframes timeline-panel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .fleet-panel {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    padding: 16px;
+  }
+
+  .timeline-panel {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    transform: none;
+    width: auto;
+    padding: 14px;
+  }
+
+  .timeline-panel__controls {
+    gap: 12px;
+  }
+}
